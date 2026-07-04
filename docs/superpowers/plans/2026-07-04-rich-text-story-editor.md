@@ -927,9 +927,21 @@ export interface StorySurfaceHandle {
 - [ ] **Step 2: Create `src/features/editor/story/PlainStoryEditor.tsx`:**
 
 ```tsx
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from 'react'
 import { getWordAtPosition } from '@/engines/normalize'
 import type { StorySurfaceHandle } from '@/features/editor/story/storySurface'
+
+/** Nearest scrolling ancestor, so the autosize height reset below can
+ * preserve its scroll position (see the useLayoutEffect note). */
+function getScrollParent(node: HTMLElement): HTMLElement | null {
+  let el = node.parentElement
+  while (el) {
+    const overflowY = getComputedStyle(el).overflowY
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return el
+    el = el.parentElement
+  }
+  return null
+}
 
 interface PlainStoryEditorProps {
   body: string
@@ -970,11 +982,20 @@ export const PlainStoryEditor = forwardRef<StorySurfaceHandle, PlainStoryEditorP
       },
     }))
 
-    useEffect(() => {
+    // Autosize to content. Resetting height to 'auto' collapses the textarea
+    // to its min-height, shrinking the scroll container so the browser clamps
+    // its scrollTop toward 0 — which visibly jumps the page up when editing
+    // mid-document. Capture the scroller's position and restore it after
+    // regrowing, in useLayoutEffect so the whole thing happens before paint.
+    useLayoutEffect(() => {
       const ta = textareaRef.current
       if (!ta) return
+      const scroller = getScrollParent(ta)
+      const prevScrollTop = scroller ? scroller.scrollTop : window.scrollY
       ta.style.height = 'auto'
       ta.style.height = `${ta.scrollHeight}px`
+      if (scroller) scroller.scrollTop = prevScrollTop
+      else window.scrollTo(0, prevScrollTop)
     }, [body, fontSize, lineHeight])
 
     function handleSelection() {

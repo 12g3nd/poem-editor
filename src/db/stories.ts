@@ -46,6 +46,10 @@ export async function deleteStory(id: string): Promise<void> {
  * up via getPoem/updatePoem) — snapshots themselves are shared with poems
  * (see db/snapshots.ts, whose `poemId` field is reused as a plain document
  * id for stories too), only the restore target lookup differs here.
+ * Also carries the story's rich `content` through: the pre-restore safety
+ * snapshot captures it, and it's restored onto the story when the snapshot
+ * being restored has one — but only then, so restoring an older,
+ * content-less snapshot never wipes the story's existing content.
  */
 export async function restoreStorySnapshot(snapshotId: string): Promise<void> {
   const snapshot = await getSnapshot(snapshotId)
@@ -59,6 +63,6 @@ export async function restoreStorySnapshot(snapshotId: string): Promise<void> {
   await updateStory(snapshot.poemId, {
     title: snapshot.title,
     body: snapshot.body,
-    content: snapshot.content,
+    ...(snapshot.content !== undefined ? { content: snapshot.content } : {}),
   })
 }

@@ -93,6 +93,8 @@ describe('restoreStorySnapshot', () => {
 
   it('takes a "Before restore" safety snapshot of the pre-restore state', async () => {
     const story = await createStory('Original title')
+    const preRestoreContent = { type: 'doc', content: [{ type: 'paragraph' }] }
+    await updateStory(story.id, { content: preRestoreContent })
     const snapshot = await createSnapshot(story.id, 'Original title', 'v1')
 
     await updateStory(story.id, { title: 'v2 title', body: 'v2 body' })
@@ -102,6 +104,21 @@ describe('restoreStorySnapshot', () => {
     const safety = snapshots.find((s) => s.label === 'Before restore')
     expect(safety?.title).toBe('v2 title')
     expect(safety?.body).toBe('v2 body')
+    expect(safety?.content).toEqual(preRestoreContent)
+  })
+
+  it('does not wipe the story content when restoring a snapshot that has none', async () => {
+    const story = await createStory('Original title')
+    const existingContent = { type: 'doc', content: [{ type: 'paragraph' }] }
+    await updateStory(story.id, { content: existingContent })
+    // Snapshot taken without a content arg, mirroring every snapshot the
+    // current UI creates.
+    const snapshot = await createSnapshot(story.id, 'Original title', 'original body')
+
+    await restoreStorySnapshot(snapshot.id)
+
+    const restored = await getStory(story.id)
+    expect(restored?.content).toEqual(existingContent)
   })
 
   it('does nothing if the snapshot does not exist', async () => {

@@ -1,13 +1,14 @@
 import { db } from '@/db/schema'
 import { createSnapshot, getSnapshot } from '@/db/snapshots'
-import type { Story } from '@/types/story'
+import type { Story, StoryFormat } from '@/types/story'
 
-export async function createStory(title = 'Untitled'): Promise<Story> {
+export async function createStory(title = 'Untitled', format: StoryFormat = 'plain'): Promise<Story> {
   const now = Date.now()
   const story: Story = {
     id: crypto.randomUUID(),
     title,
     body: '',
+    format,
     createdAt: now,
     modifiedAt: now,
     status: 'draft',
@@ -52,8 +53,12 @@ export async function restoreStorySnapshot(snapshotId: string): Promise<void> {
 
   const current = await getStory(snapshot.poemId)
   if (current) {
-    await createSnapshot(current.id, current.title, current.body, 'Before restore')
+    await createSnapshot(current.id, current.title, current.body, 'Before restore', current.content)
   }
 
-  await updateStory(snapshot.poemId, { title: snapshot.title, body: snapshot.body })
+  await updateStory(snapshot.poemId, {
+    title: snapshot.title,
+    body: snapshot.body,
+    content: snapshot.content,
+  })
 }

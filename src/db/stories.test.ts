@@ -108,3 +108,29 @@ describe('restoreStorySnapshot', () => {
     await expect(restoreStorySnapshot('does-not-exist')).resolves.not.toThrow()
   })
 })
+
+describe('createStory format', () => {
+  it('defaults to plain when no format is given', async () => {
+    const story = await createStory('Untitled')
+    expect(story.format).toBe('plain')
+  })
+
+  it('stamps the given format', async () => {
+    const story = await createStory('Rich one', 'rich')
+    expect(story.format).toBe('rich')
+    expect((await getStory(story.id))?.format).toBe('rich')
+  })
+})
+
+describe('restoreStorySnapshot content', () => {
+  it('restores content when the snapshot has it', async () => {
+    const story = await createStory('Doc', 'rich')
+    const doc = { type: 'doc', content: [{ type: 'paragraph' }] }
+    const snap = await createSnapshot(story.id, 'Doc', 'plain body', undefined, doc)
+    await updateStory(story.id, { content: { type: 'doc', content: [] }, body: 'changed' })
+    await restoreStorySnapshot(snap.id)
+    const restored = await getStory(story.id)
+    expect(restored?.content).toEqual(doc)
+    expect(restored?.body).toBe('plain body')
+  })
+})

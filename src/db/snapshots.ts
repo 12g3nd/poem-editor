@@ -7,6 +7,7 @@ export async function createSnapshot(
   title: string,
   body: string,
   label?: string,
+  content?: object,
 ): Promise<Snapshot> {
   const snapshot: Snapshot = {
     id: crypto.randomUUID(),
@@ -15,6 +16,7 @@ export async function createSnapshot(
     body,
     createdAt: Date.now(),
     ...(label !== undefined ? { label } : {}),
+    ...(content !== undefined ? { content } : {}),
   }
   await db.snapshots.add(snapshot)
   return snapshot

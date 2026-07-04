@@ -1,0 +1,58 @@
+import Dexie, { type EntityTable } from 'dexie'
+import type { Poem } from '@/types/poem'
+import type { Story } from '@/types/story'
+import type { WordOverride } from '@/types/override'
+import type { Snapshot } from '@/types/snapshot'
+import type { FormTemplate } from '@/types/form'
+import type { Collection } from '@/types/collection'
+
+export class Sonnet5DB extends Dexie {
+  poems!: EntityTable<Poem, 'id'>
+  stories!: EntityTable<Story, 'id'>
+  wordOverrides!: EntityTable<WordOverride, 'word'>
+  snapshots!: EntityTable<Snapshot, 'id'>
+  customForms!: EntityTable<FormTemplate, 'id'>
+  collections!: EntityTable<Collection, 'id'>
+
+  constructor() {
+    super('sonnet5')
+    this.version(1).stores({
+      poems: 'id, title, createdAt, modifiedAt',
+    })
+    this.version(2).stores({
+      poems: 'id, title, createdAt, modifiedAt',
+      wordOverrides: 'word',
+    })
+    this.version(3).stores({
+      poems: 'id, title, createdAt, modifiedAt',
+      wordOverrides: 'word',
+      snapshots: 'id, poemId, createdAt',
+    })
+    this.version(4).stores({
+      poems: 'id, title, createdAt, modifiedAt',
+      wordOverrides: 'word',
+      snapshots: 'id, poemId, createdAt',
+      customForms: 'id, name',
+    })
+    this.version(5).stores({
+      poems: 'id, title, createdAt, modifiedAt, status, favorite, *tags, *collectionIds',
+      wordOverrides: 'word',
+      snapshots: 'id, poemId, createdAt',
+      customForms: 'id, name',
+      collections: 'id, name, createdAt',
+    })
+    // Short story mode: a separate table (rather than cramming poem-only
+    // fields like rhymeOverrides/formId onto prose documents) — snapshots
+    // are shared as-is, since its poemId field is just an opaque document id.
+    this.version(6).stores({
+      poems: 'id, title, createdAt, modifiedAt, status, favorite, *tags, *collectionIds',
+      stories: 'id, title, createdAt, modifiedAt, status, favorite, *tags, *collectionIds',
+      wordOverrides: 'word',
+      snapshots: 'id, poemId, createdAt',
+      customForms: 'id, name',
+      collections: 'id, name, createdAt',
+    })
+  }
+}
+
+export const db = new Sonnet5DB()

@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-sans:
+    -apple-system, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+
+  /* Manuscript palette: cool neutral chrome around a warm paper surface,
+     ink-indigo as the working accent, verdigris/berry reserved for status. */
+  --color-ink: #2b2a33;
+  --color-indigo: #3e4c8c;
+  --color-indigo-soft: #6b78b0;
+  --color-verdigris: #4b7b6f;
+  --color-berry: #8c3b4b;
+  --color-paper: #fbfaf7;
+  --color-canvas: #f1f0ee;
+  --color-canvas-line: #e4e2dd;
+
+  /* Extra hues for the rhyme-scheme label palette (rhymeColors.ts) once a
+     poem has more concurrent rhyme groups than the core accent colors —
+     each tuned for >=4.5:1 contrast against canvas in its theme. */
+  --color-rhyme-amber: #8e642f;
+  --color-rhyme-plum: #6b4c8c;
+  --color-rhyme-steel: #377193;
+  --color-rhyme-bronze: #886839;
+  --color-rhyme-moss: #4e7632;
+}
+
+/* Dark mode keeps the same manuscript personality — ink-on-paper — just
+   with the values inverted: a near-black canvas, a slightly lighter paper
+   surface for the writing area, and brighter accent tones so they still
+   read clearly against the dark background. */
+:root[data-theme='dark'] {
+  --color-ink: #e8e6e0;
+  --color-indigo: #7b89c9;
+  --color-indigo-soft: #9aa5d6;
+  --color-verdigris: #6fa396;
+  --color-berry: #c97d8d;
+  --color-paper: #232228;
+  --color-canvas: #1c1b20;
+  --color-canvas-line: #35333c;
+  --color-rhyme-amber: #b8823d;
+  --color-rhyme-plum: #9c7fba;
+  --color-rhyme-steel: #4791ba;
+  --color-rhyme-bronze: #ac8449;
+  --color-rhyme-moss: #639740;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-ink: #e8e6e0;
+    --color-indigo: #7b89c9;
+    --color-indigo-soft: #9aa5d6;
+    --color-verdigris: #6fa396;
+    --color-berry: #c97d8d;
+    --color-paper: #232228;
+    --color-canvas: #1c1b20;
+    --color-canvas-line: #35333c;
+    --color-rhyme-amber: #b8823d;
+    --color-rhyme-plum: #9c7fba;
+    --color-rhyme-steel: #4791ba;
+    --color-rhyme-bronze: #ac8449;
+    --color-rhyme-moss: #639740;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Printing/PDF export renders only the hidden PrintablePoem block (see
+   print:hidden / print:block utility classes in EditorPage and
+   PrintablePoem) — plain black-on-white regardless of the active theme. */
+@media print {
+  @page {
+    margin: 1in;
+  }
+
+  body {
+    background: #ffffff;
+  }
+}

@@ -52,6 +52,18 @@ export class Sonnet5DB extends Dexie {
       customForms: 'id, name',
       collections: 'id, name, createdAt',
     })
+    // Rich short-story mode: adds format/content/comments to stories and
+    // content to snapshots. All new fields are unindexed object properties,
+    // so no data migration is required — legacy rows simply lack them and are
+    // treated as plain text at read time (see storyFormat()).
+    this.version(7).stores({
+      poems: 'id, title, createdAt, modifiedAt, status, favorite, *tags, *collectionIds',
+      stories: 'id, title, createdAt, modifiedAt, status, favorite, *tags, *collectionIds',
+      wordOverrides: 'word',
+      snapshots: 'id, poemId, createdAt',
+      customForms: 'id, name',
+      collections: 'id, name, createdAt',
+    })
   }
 }
 

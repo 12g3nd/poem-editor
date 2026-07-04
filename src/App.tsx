@@ -63,7 +63,7 @@ export default function App() {
     <SettingsProvider>
       <DictionaryProvider>
         <CommandPaletteProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <GlobalCommands />
             <CommandPalette />
             <ShortcutsHelp />

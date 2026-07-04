@@ -12,7 +12,7 @@ let cached: Promise<ThesaurusIndex> | null = null
  */
 export function loadThesaurus(): Promise<ThesaurusIndex> {
   if (!cached) {
-    cached = fetch('/data/thesaurus.json')
+    cached = fetch(`${import.meta.env.BASE_URL}data/thesaurus.json`)
       .then((res) => res.json() as Promise<[string, string[]][]>)
       .then((tuples) => new Map(tuples))
   }

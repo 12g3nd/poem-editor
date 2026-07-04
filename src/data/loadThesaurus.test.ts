@@ -17,7 +17,7 @@ describe('loadThesaurus', () => {
     const { loadThesaurus } = await import('@/data/loadThesaurus')
     const thesaurus = await loadThesaurus()
 
-    expect(fetchMock).toHaveBeenCalledWith('/data/thesaurus.json')
+    expect(fetchMock).toHaveBeenCalledWith(`${import.meta.env.BASE_URL}data/thesaurus.json`)
     expect(thesaurus.get('happy')).toEqual(['glad', 'joyful'])
   })
 

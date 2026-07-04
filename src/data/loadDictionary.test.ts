@@ -17,7 +17,7 @@ describe('loadDictionary', () => {
     const { loadDictionary } = await import('@/data/loadDictionary')
     const dict = await loadDictionary()
 
-    expect(fetchMock).toHaveBeenCalledWith('/data/dictionary.json')
+    expect(fetchMock).toHaveBeenCalledWith(`${import.meta.env.BASE_URL}data/dictionary.json`)
     expect(dict.get('cat')?.stress).toBe('1')
   })
 

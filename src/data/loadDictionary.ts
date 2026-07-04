@@ -10,7 +10,7 @@ let cached: Promise<DictionaryIndex> | null = null
  */
 export function loadDictionary(): Promise<DictionaryIndex> {
   if (!cached) {
-    cached = fetch('/data/dictionary.json')
+    cached = fetch(`${import.meta.env.BASE_URL}data/dictionary.json`)
       .then((res) => res.json() as Promise<DictionaryTuple[]>)
       .then(buildDictionaryIndex)
   }

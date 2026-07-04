@@ -62,7 +62,7 @@ export function LibraryPage() {
   return (
     <div className="min-h-full bg-canvas">
       <header className="flex items-center justify-between border-b border-canvas-line px-8 py-6">
-        <h1 className="font-display text-2xl tracking-tight text-ink">Sonnet 5</h1>
+        <h1 className="font-display text-2xl tracking-tight text-ink">Poem Editor</h1>
         <div className="flex items-center gap-5">
           <Link to="/stats" className="text-sm text-ink/50 hover:text-indigo">
             Stats

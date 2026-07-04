@@ -10,7 +10,7 @@ export function ImportExportPanel() {
 
   async function handleExport() {
     const data = await exportLibrary()
-    downloadJson(data, `sonnet5-library-${new Date().toISOString().slice(0, 10)}.json`)
+    downloadJson(data, `poem-editor-library-${new Date().toISOString().slice(0, 10)}.json`)
   }
 
   function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
@@ -23,10 +23,10 @@ export function ImportExportPanel() {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string) as LibraryExportData
-        if (!Array.isArray(data.poems)) throw new Error('Not a Sonnet 5 library file.')
+        if (!Array.isArray(data.poems)) throw new Error('Not a Poem Editor library file.')
         setPendingImport(data)
       } catch {
-        setError('That file doesn\'t look like a Sonnet 5 library export.')
+        setError('That file doesn\'t look like a Poem Editor library export.')
       }
     }
     reader.readAsText(file)

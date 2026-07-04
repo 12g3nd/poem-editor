@@ -1667,10 +1667,8 @@ commentsProps={
         onEdit: (cid, text) => setComments((prev) => prev.map((c) => (c.id === cid ? { ...c, text } : c))),
         onResolveToggle: (cid) => setComments((prev) => prev.map((c) => (c.id === cid ? { ...c, resolved: !c.resolved } : c))),
         onDelete: (cid) => {
-          richRef.current?.editor?.chain().focus().selectAll().run() // no-op focus guard
+          removeCommentMark(cid) // strip the mark from the doc first
           setComments((prev) => prev.filter((c) => c.id !== cid))
-          // remove the mark for this id from the doc
-          removeCommentMark(cid)
         },
         onSelect: (cid) => {
           setActiveCommentId(cid)

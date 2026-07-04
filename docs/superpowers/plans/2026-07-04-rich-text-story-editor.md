@@ -30,7 +30,7 @@
 - `src/engines/richText/projection.ts` — `docToPlainText(doc)`.
 - `src/engines/richText/serialize.ts` — `docToHtml(doc)`, `docToMarkdown(title, doc)`.
 - `src/engines/richText/comments.ts` — `collectCommentIds(doc)`, `partitionComments(comments, doc)`.
-- `src/engines/richText/emptyDoc.ts` — `EMPTY_DOC`, `plainTextToDoc(text)` (legacy/plain→rich conversion).
+- `src/engines/richText/emptyDoc.ts` — `EMPTY_DOC` (the empty rich document).
 - `src/features/editor/story/storySurface.ts` — `StorySurfaceHandle` interface.
 - `src/features/editor/story/PlainStoryEditor.tsx` — textarea surface (extracted from current page).
 - `src/features/editor/story/RichStoryEditor.tsx` — TipTap surface.
@@ -520,14 +520,19 @@ git commit -m "feat: add TipTap and the shared story rich-text schema"
 - Produces:
   - `docToPlainText(doc: JSONContent): string` — block-separated plain text (paragraphs/headings separated by `\n\n`), matching what `countParagraphs`/`countWords` expect.
   - `EMPTY_DOC: JSONContent` — `{ type: 'doc', content: [{ type: 'paragraph' }] }`.
-  - `plainTextToDoc(text: string): JSONContent` — one paragraph per line; blank lines become empty paragraphs (used when a legacy plain story is opened in a rich context or seeded).
 - Consumes: `storyExtensions` from Task 4.
+
+> Note: an earlier draft of this task also exported a `plainTextToDoc` helper.
+> It has been dropped — nothing in the design consumes it (plain stories stay
+> plain; rich stories start from `EMPTY_DOC`; there is no plain→rich
+> conversion), and its per-line paragraph split round-tripped incorrectly
+> against `docToPlainText`'s `\n\n` block separator. Do not add it.
 
 - [ ] **Step 1: Write the failing test** — `src/engines/richText/projection.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest'
-import { docToPlainText, plainTextToDoc, EMPTY_DOC } from '@/engines/richText/projection'
+import { docToPlainText, EMPTY_DOC } from '@/engines/richText/projection'
 import { countParagraphs } from '@/engines/storyStats'
 
 const doc = {
@@ -557,13 +562,6 @@ describe('docToPlainText', () => {
 
   it('empties cleanly', () => {
     expect(docToPlainText(EMPTY_DOC)).toBe('')
-  })
-})
-
-describe('plainTextToDoc', () => {
-  it('round-trips through the projection', () => {
-    const text = 'Line one\n\nLine two'
-    expect(docToPlainText(plainTextToDoc(text))).toBe(text)
   })
 })
 ```
@@ -596,18 +594,6 @@ export { EMPTY_DOC }
 export function docToPlainText(doc: JSONContent): string {
   return generateText(doc, storyExtensions, { blockSeparator: '\n\n' })
 }
-
-/** Turns plain text into a minimal rich doc: each line is a paragraph, blank
- * lines become empty paragraphs. Inverse of docToPlainText for unformatted
- * text. */
-export function plainTextToDoc(text: string): JSONContent {
-  const paragraphs = text.split('\n').map((line) =>
-    line.length > 0
-      ? { type: 'paragraph', content: [{ type: 'text', text: line }] }
-      : { type: 'paragraph' },
-  )
-  return { type: 'doc', content: paragraphs.length > 0 ? paragraphs : [{ type: 'paragraph' }] }
-}
 ```
 
 - [ ] **Step 5: Run to verify pass**
@@ -619,7 +605,7 @@ Expected: PASS. If block separation differs (single `\n`), it means `generateTex
 
 ```bash
 git add src/engines/richText/projection.ts src/engines/richText/emptyDoc.ts src/engines/richText/projection.test.ts
-git commit -m "feat: add rich-doc plain-text projection and plain<->doc helpers"
+git commit -m "feat: add rich-doc plain-text projection"
 ```
 
 ---

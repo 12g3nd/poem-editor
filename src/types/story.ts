@@ -1,3 +1,4 @@
+import type { JSONContent } from '@tiptap/core'
 import type { PoemStatus } from '@/types/poem'
 
 export type StoryFormat = 'plain' | 'rich'
@@ -33,9 +34,8 @@ export interface Story {
    * creation and never changed, so stories never silently lose formatting. */
   format?: StoryFormat
   /** ProseMirror document JSON — rich stories only. `body` is always kept in
-   * sync as this doc's plain-text projection. Typed `object` until the rich
-   * engine (which owns JSONContent) is installed. */
-  content?: object
+   * sync as this doc's plain-text projection. */
+  content?: JSONContent
   /** Comment threads for a rich story; anchors live in `content`. */
   comments?: StoryComment[]
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getStory, updateStory } from '@/db/stories'
@@ -12,6 +12,19 @@ import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { ExportMenu } from '@/features/editor/ExportMenu'
 import { PrintablePoem } from '@/features/editor/PrintablePoem'
 import { useRegisterCommands, type Command } from '@/engines/CommandPaletteContext'
+
+/** The nearest ancestor that actually scrolls, so we can preserve its scroll
+ * position across the autosize height reset below. Returns null when nothing
+ * up the chain scrolls (then the window is the scroller). */
+function getScrollParent(node: HTMLElement): HTMLElement | null {
+  let el = node.parentElement
+  while (el) {
+    const overflowY = getComputedStyle(el).overflowY
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return el
+    el = el.parentElement
+  }
+  return null
+}
 
 /** The "short story mode" editor — a plain wrapping prose surface (no
  * per-line gutters/overlays, since rhyme/scansion/meter don't apply to
@@ -31,6 +44,7 @@ export function StoryEditorPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const [focusMode, setFocusMode] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(true)
   const [snapshotSaved, setSnapshotSaved] = useState(false)
   const [activeWord, setActiveWord] = useState<string | null>(null)
 
@@ -53,11 +67,24 @@ export function StoryEditorPage() {
   // Autosize the textarea to its content so the outer page scrolls as one
   // continuous document instead of inside a boxed, internally-scrolling
   // textarea — the "many thousands of words, neatly kept" requirement.
-  useEffect(() => {
+  //
+  // Resetting height to 'auto' momentarily collapses the textarea to its
+  // min-height, which shrinks the scroll container and makes the browser
+  // clamp its scrollTop toward 0. Left alone, editing mid-document visibly
+  // jumps the page upward. So we capture the scroller's position before the
+  // reset and restore it after regrowing. This runs in useLayoutEffect (not
+  // useEffect) so the whole collapse→regrow→restore happens synchronously
+  // after the DOM update and before the browser paints — the clamped scroll
+  // state is never visible.
+  useLayoutEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
+    const scroller = getScrollParent(textarea)
+    const prevScrollTop = scroller ? scroller.scrollTop : window.scrollY
     textarea.style.height = 'auto'
     textarea.style.height = `${textarea.scrollHeight}px`
+    if (scroller) scroller.scrollTop = prevScrollTop
+    else window.scrollTo(0, prevScrollTop)
   }, [body, settings.fontSize, settings.lineHeight])
 
   const wordCount = useMemo(() => countWords(body), [body])
@@ -132,7 +159,7 @@ export function StoryEditorPage() {
 
   return (
     <>
-      <div className="flex min-h-full flex-col bg-canvas print:hidden">
+      <div className="flex h-full flex-col bg-canvas print:hidden">
         <header className="flex items-center justify-between border-b border-canvas-line px-8 py-4">
           <button
             type="button"
@@ -156,6 +183,16 @@ export function StoryEditorPage() {
             >
               Focus
             </button>
+            <button
+              type="button"
+              onClick={() => setPanelOpen((v) => !v)}
+              aria-pressed={panelOpen}
+              className={`rounded-full px-3 py-1 transition-colors ${
+                panelOpen ? 'bg-indigo text-paper' : 'text-ink/50 hover:text-indigo'
+              }`}
+            >
+              Panel
+            </button>
             <button type="button" onClick={handleSnapshot} className="text-ink/50 hover:text-indigo">
               {snapshotSaved ? 'Saved ✓' : 'Snapshot'}
             </button>
@@ -167,8 +204,8 @@ export function StoryEditorPage() {
           </div>
         </header>
 
-        <div className="flex flex-1 overflow-hidden">
-          <main className="flex-1 overflow-y-auto px-8 py-10">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <main className="min-h-0 flex-1 overflow-y-auto px-8 py-10">
             <div className={focusMode ? 'mx-auto max-w-2xl' : 'mx-auto max-w-3xl'}>
               <input
                 value={title}
@@ -203,7 +240,12 @@ export function StoryEditorPage() {
             </div>
           </main>
 
-          {!focusMode && <StoryWorkbenchSidebar activeWord={activeWord} body={body} onInsert={insertAtCursor} />}
+          <StoryWorkbenchSidebar
+            activeWord={activeWord}
+            body={body}
+            onInsert={insertAtCursor}
+            hidden={focusMode || !panelOpen}
+          />
         </div>
       </div>
       <PrintablePoem title={title} body={body} />

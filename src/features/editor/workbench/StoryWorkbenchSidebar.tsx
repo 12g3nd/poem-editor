@@ -17,12 +17,15 @@ interface StoryWorkbenchSidebarProps {
   activeWord: string | null
   body: string
   onInsert: (word: string) => void
+  /** Collapsed/focus mode keeps the sidebar mounted but visually hidden, so
+   * the Ask AI conversation survives being toggled off and back on. */
+  hidden?: boolean
 }
 
 /** The poem workbench's Rhymes/Syllables/Sound/Meter/Form tabs don't apply
  * to prose — this is the same word-lookup + writing-aid tooling (Thesaurus,
  * Spark, Ask AI), reused as-is, without the poetry-analysis tabs. */
-export function StoryWorkbenchSidebar({ activeWord, body, onInsert }: StoryWorkbenchSidebarProps) {
+export function StoryWorkbenchSidebar({ activeWord, body, onInsert, hidden }: StoryWorkbenchSidebarProps) {
   const [tab, setTab] = useState<TabId>('thesaurus')
   const [recent, setRecent] = useState<string[]>([])
 
@@ -34,7 +37,7 @@ export function StoryWorkbenchSidebar({ activeWord, body, onInsert }: StoryWorkb
   const word = activeWord ?? ''
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-canvas-line bg-paper">
+    <aside className={`${hidden ? 'hidden' : 'flex'} w-80 shrink-0 flex-col border-l border-canvas-line bg-paper`}>
       <nav className="flex flex-wrap border-b border-canvas-line">
         {TABS.map((t) => (
           <button
@@ -54,7 +57,11 @@ export function StoryWorkbenchSidebar({ activeWord, body, onInsert }: StoryWorkb
         {tab === 'thesaurus' && <ThesaurusTab word={word} onInsert={onInsert} />}
         {tab === 'recent' && <RecentLookupsTab words={recent} onSelect={onInsert} />}
         {tab === 'spark' && <SparkTab onInsert={onInsert} />}
-        {tab === 'ai' && <AskAiTab body={body} />}
+        {/* Ask AI stays mounted (just hidden) so switching tabs — or collapsing
+         * the whole panel — never throws away the conversation in progress. */}
+        <div className={tab === 'ai' ? 'h-full' : 'hidden'}>
+          <AskAiTab body={body} />
+        </div>
       </div>
     </aside>
   )

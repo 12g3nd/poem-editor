@@ -32,6 +32,9 @@ interface WorkbenchSidebarProps {
   onFormChange: (formId: string | null) => void
   onAcrosticWordChange: (word: string) => void
   onInsert: (word: string) => void
+  /** Collapsed/focus mode keeps the sidebar mounted but visually hidden, so
+   * the Ask AI conversation survives being toggled off and back on. */
+  hidden?: boolean
 }
 
 export function WorkbenchSidebar({
@@ -43,6 +46,7 @@ export function WorkbenchSidebar({
   onFormChange,
   onAcrosticWordChange,
   onInsert,
+  hidden,
 }: WorkbenchSidebarProps) {
   const [tab, setTab] = useState<TabId>('rhymes')
   const [recent, setRecent] = useState<string[]>([])
@@ -55,7 +59,7 @@ export function WorkbenchSidebar({
   const word = activeWord ?? ''
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-canvas-line bg-paper">
+    <aside className={`${hidden ? 'hidden' : 'flex'} w-80 shrink-0 flex-col border-l border-canvas-line bg-paper`}>
       <nav className="flex flex-wrap border-b border-canvas-line">
         {TABS.map((t) => (
           <button
@@ -89,7 +93,11 @@ export function WorkbenchSidebar({
         )}
         {tab === 'recent' && <RecentLookupsTab words={recent} onSelect={onInsert} />}
         {tab === 'spark' && <SparkTab onInsert={onInsert} />}
-        {tab === 'ai' && <AskAiTab body={body} />}
+        {/* Ask AI stays mounted (just hidden) so switching tabs — or collapsing
+         * the whole panel — never throws away the conversation in progress. */}
+        <div className={tab === 'ai' ? 'h-full' : 'hidden'}>
+          <AskAiTab body={body} />
+        </div>
       </div>
     </aside>
   )

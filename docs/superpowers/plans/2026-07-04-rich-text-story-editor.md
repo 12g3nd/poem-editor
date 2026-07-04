@@ -318,7 +318,11 @@ Update `restoreStorySnapshot`'s final lines to carry content and take a content-
   await updateStory(snapshot.poemId, {
     title: snapshot.title,
     body: snapshot.body,
-    content: snapshot.content,
+    // Guard content: Dexie's update() DROPS a key written as undefined, so an
+    // unconditional `content: snapshot.content` would wipe a rich story's
+    // content when restoring a content-less (plain-era) snapshot. Only write
+    // content when the snapshot actually carries it.
+    ...(snapshot.content !== undefined ? { content: snapshot.content } : {}),
   })
 ```
 

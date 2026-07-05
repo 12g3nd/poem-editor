@@ -93,6 +93,8 @@ describe('restoreStorySnapshot', () => {
 
   it('takes a "Before restore" safety snapshot of the pre-restore state', async () => {
     const story = await createStory('Original title')
+    const preRestoreContent = { type: 'doc', content: [{ type: 'paragraph' }] }
+    await updateStory(story.id, { content: preRestoreContent })
     const snapshot = await createSnapshot(story.id, 'Original title', 'v1')
 
     await updateStory(story.id, { title: 'v2 title', body: 'v2 body' })
@@ -102,9 +104,50 @@ describe('restoreStorySnapshot', () => {
     const safety = snapshots.find((s) => s.label === 'Before restore')
     expect(safety?.title).toBe('v2 title')
     expect(safety?.body).toBe('v2 body')
+    expect(safety?.content).toEqual(preRestoreContent)
+  })
+
+  it('does not wipe the story content when restoring a snapshot that has none', async () => {
+    const story = await createStory('Original title')
+    const existingContent = { type: 'doc', content: [{ type: 'paragraph' }] }
+    await updateStory(story.id, { content: existingContent })
+    // Snapshot taken without a content arg, mirroring every snapshot the
+    // current UI creates.
+    const snapshot = await createSnapshot(story.id, 'Original title', 'original body')
+
+    await restoreStorySnapshot(snapshot.id)
+
+    const restored = await getStory(story.id)
+    expect(restored?.content).toEqual(existingContent)
   })
 
   it('does nothing if the snapshot does not exist', async () => {
     await expect(restoreStorySnapshot('does-not-exist')).resolves.not.toThrow()
+  })
+})
+
+describe('createStory format', () => {
+  it('defaults to plain when no format is given', async () => {
+    const story = await createStory('Untitled')
+    expect(story.format).toBe('plain')
+  })
+
+  it('stamps the given format', async () => {
+    const story = await createStory('Rich one', 'rich')
+    expect(story.format).toBe('rich')
+    expect((await getStory(story.id))?.format).toBe('rich')
+  })
+})
+
+describe('restoreStorySnapshot content', () => {
+  it('restores content when the snapshot has it', async () => {
+    const story = await createStory('Doc', 'rich')
+    const doc = { type: 'doc', content: [{ type: 'paragraph' }] }
+    const snap = await createSnapshot(story.id, 'Doc', 'plain body', undefined, doc)
+    await updateStory(story.id, { content: { type: 'doc', content: [] }, body: 'changed' })
+    await restoreStorySnapshot(snap.id)
+    const restored = await getStory(story.id)
+    expect(restored?.content).toEqual(doc)
+    expect(restored?.body).toBe('plain body')
   })
 })

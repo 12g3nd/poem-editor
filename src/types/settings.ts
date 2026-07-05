@@ -14,6 +14,10 @@ export interface AppSettings {
    * supplement the bundled CMU dictionary / Moby Thesaurus. The app works
    * fully offline without it. */
   onlineExtrasEnabled: boolean
+  /** Which editor new stories open in. 'rich' (default) uses the TipTap
+   * formatting surface; 'plain' restores the original textarea. Each story
+   * records its own format at creation, so this only affects new stories. */
+  storyEditorMode: 'rich' | 'plain'
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -25,6 +29,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ollamaEndpoint: 'http://localhost:11434',
   ollamaModel: '',
   onlineExtrasEnabled: false,
+  storyEditorMode: 'rich',
 }
 
 export const FONT_SIZE_RANGE = { min: 14, max: 24, step: 1 }

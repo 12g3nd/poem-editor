@@ -5,6 +5,7 @@ import { listPoems, createPoem } from '@/db/poems'
 import { listStories, createStory } from '@/db/stories'
 import { listCollections } from '@/db/collections'
 import { listCustomForms } from '@/db/customForms'
+import { useSettings } from '@/engines/SettingsContext'
 import { filterPoems, allTags } from '@/engines/libraryFilter'
 import { BUILT_IN_TEMPLATES_BY_ID } from '@/engines/formTemplates/index'
 import type { PoemStatus } from '@/types/poem'
@@ -16,6 +17,7 @@ import { ImportExportPanel } from '@/features/library/ImportExportPanel'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 
 export function LibraryPage() {
+  const { settings } = useSettings()
   const poems = useLiveQuery(() => listPoems(), [])
   const stories = useLiveQuery(() => listStories(), [])
   const collections = useLiveQuery(() => listCollections(), []) ?? []
@@ -55,7 +57,7 @@ export function LibraryPage() {
   }
 
   async function handleNewStory() {
-    const story = await createStory()
+    const story = await createStory('Untitled', settings.storyEditorMode)
     navigate(`/story/${story.id}`)
   }
 

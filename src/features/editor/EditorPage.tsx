@@ -48,6 +48,7 @@ export function EditorPage() {
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const [focusMode, setFocusMode] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(true)
   const [overlayMode, setOverlayMode] = useState<OverlayMode>('none')
   const [currentLine, setCurrentLine] = useState(0)
   const [overlayWindow, setOverlayWindow] = useState({ top: 0, bottom: 0 })
@@ -282,7 +283,7 @@ export function EditorPage() {
 
   return (
     <>
-    <div className="flex min-h-full flex-col bg-canvas print:hidden">
+    <div className="flex h-full flex-col bg-canvas print:hidden">
       <header className="flex items-center justify-between border-b border-canvas-line px-8 py-4">
         <button
           type="button"
@@ -329,6 +330,16 @@ export function EditorPage() {
           >
             Focus
           </button>
+          <button
+            type="button"
+            onClick={() => setPanelOpen((v) => !v)}
+            aria-pressed={panelOpen}
+            className={`rounded-full px-3 py-1 transition-colors ${
+              panelOpen ? 'bg-indigo text-paper' : 'text-ink/50 hover:text-indigo'
+            }`}
+          >
+            Panel
+          </button>
           <button type="button" onClick={handleSnapshot} className="text-ink/50 hover:text-indigo">
             {snapshotSaved ? 'Saved ✓' : 'Snapshot'}
           </button>
@@ -340,8 +351,8 @@ export function EditorPage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 overflow-y-auto px-8 py-10">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <main className="min-h-0 flex-1 overflow-y-auto px-8 py-10">
           <div className="mx-auto max-w-3xl">
             <input
               value={title}
@@ -412,6 +423,7 @@ export function EditorPage() {
           onFormChange={handleFormChange}
           onAcrosticWordChange={handleAcrosticWordChange}
           onInsert={insertAtCursor}
+          hidden={!panelOpen}
         />
       </div>
 

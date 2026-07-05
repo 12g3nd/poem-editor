@@ -35,7 +35,7 @@ function GlobalCommands() {
         id: 'new-story',
         label: 'New story',
         run: () => {
-          void createStory().then((story) => navigate(`/story/${story.id}`))
+          void createStory('Untitled', settings.storyEditorMode).then((story) => navigate(`/story/${story.id}`))
         },
       },
       { id: 'go-library', label: 'Go to Library', run: () => navigate('/') },
@@ -47,7 +47,7 @@ function GlobalCommands() {
       },
       { id: 'shortcuts', label: 'Keyboard shortcuts', shortcut: '?', run: () => setShortcutsOpen(true) },
     ],
-    [navigate, settings.theme, updateSettings, setShortcutsOpen],
+    [navigate, settings.theme, settings.storyEditorMode, updateSettings, setShortcutsOpen],
   )
 
   useRegisterCommands('global', commands)

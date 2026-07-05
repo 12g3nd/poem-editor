@@ -122,6 +122,28 @@ export function SettingsPanel() {
               />
             </div>
 
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-ink/40">New stories open in</p>
+              <div className="flex gap-1 rounded-full border border-canvas-line p-0.5">
+                {(['rich', 'plain'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => updateSettings({ storyEditorMode: mode })}
+                    aria-pressed={settings.storyEditorMode === mode}
+                    className={`flex-1 rounded-full py-1 text-xs capitalize ${
+                      settings.storyEditorMode === mode ? 'bg-indigo text-paper' : 'text-ink/60'
+                    }`}
+                  >
+                    {mode === 'rich' ? 'Rich text' : 'Plain text'}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-ink/40">
+                Affects new stories only. Existing stories keep the editor they were created with.
+              </p>
+            </div>
+
             <div className="border-t border-canvas-line pt-4">
               <label className="flex items-center justify-between">
                 <span className="text-xs font-medium text-ink/40">

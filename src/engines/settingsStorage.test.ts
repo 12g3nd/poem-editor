@@ -26,4 +26,13 @@ describe('loadSettings', () => {
     localStorage.setItem('sonnet5-settings', 'not json')
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS)
   })
+
+  it('defaults storyEditorMode to rich', () => {
+    expect(loadSettings().storyEditorMode).toBe('rich')
+  })
+
+  it('preserves a saved storyEditorMode of plain', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, storyEditorMode: 'plain' })
+    expect(loadSettings().storyEditorMode).toBe('plain')
+  })
 })

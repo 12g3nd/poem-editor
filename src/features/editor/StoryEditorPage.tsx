@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getStory, updateStory } from '@/db/stories'
@@ -6,25 +6,13 @@ import { createSnapshot } from '@/db/snapshots'
 import { useSettings } from '@/engines/SettingsContext'
 import { countWords } from '@/engines/lineStats'
 import { estimateReadingMinutes, countParagraphs } from '@/engines/storyStats'
-import { getWordAtPosition } from '@/engines/normalize'
 import { StoryWorkbenchSidebar } from '@/features/editor/workbench/StoryWorkbenchSidebar'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { ExportMenu } from '@/features/editor/ExportMenu'
 import { PrintablePoem } from '@/features/editor/PrintablePoem'
 import { useRegisterCommands, type Command } from '@/engines/CommandPaletteContext'
-
-/** The nearest ancestor that actually scrolls, so we can preserve its scroll
- * position across the autosize height reset below. Returns null when nothing
- * up the chain scrolls (then the window is the scroller). */
-function getScrollParent(node: HTMLElement): HTMLElement | null {
-  let el = node.parentElement
-  while (el) {
-    const overflowY = getComputedStyle(el).overflowY
-    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return el
-    el = el.parentElement
-  }
-  return null
-}
+import { PlainStoryEditor } from '@/features/editor/story/PlainStoryEditor'
+import type { StorySurfaceHandle } from '@/features/editor/story/storySurface'
 
 /** The "short story mode" editor — a plain wrapping prose surface (no
  * per-line gutters/overlays, since rhyme/scansion/meter don't apply to
@@ -41,7 +29,7 @@ export function StoryEditorPage() {
   const [body, setBody] = useState('')
   const hydratedFor = useRef<string | null>(null)
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const surfaceRef = useRef<StorySurfaceHandle>(null)
 
   const [focusMode, setFocusMode] = useState(false)
   const [panelOpen, setPanelOpen] = useState(true)
@@ -64,29 +52,6 @@ export function StoryEditorPage() {
     return () => clearTimeout(handle)
   }, [id, title, body])
 
-  // Autosize the textarea to its content so the outer page scrolls as one
-  // continuous document instead of inside a boxed, internally-scrolling
-  // textarea — the "many thousands of words, neatly kept" requirement.
-  //
-  // Resetting height to 'auto' momentarily collapses the textarea to its
-  // min-height, which shrinks the scroll container and makes the browser
-  // clamp its scrollTop toward 0. Left alone, editing mid-document visibly
-  // jumps the page upward. So we capture the scroller's position before the
-  // reset and restore it after regrowing. This runs in useLayoutEffect (not
-  // useEffect) so the whole collapse→regrow→restore happens synchronously
-  // after the DOM update and before the browser paints — the clamped scroll
-  // state is never visible.
-  useLayoutEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const scroller = getScrollParent(textarea)
-    const prevScrollTop = scroller ? scroller.scrollTop : window.scrollY
-    textarea.style.height = 'auto'
-    textarea.style.height = `${textarea.scrollHeight}px`
-    if (scroller) scroller.scrollTop = prevScrollTop
-    else window.scrollTo(0, prevScrollTop)
-  }, [body, settings.fontSize, settings.lineHeight])
-
   const wordCount = useMemo(() => countWords(body), [body])
   const paragraphCount = useMemo(() => countParagraphs(body), [body])
   const readingMinutes = useMemo(() => estimateReadingMinutes(wordCount), [wordCount])
@@ -96,27 +61,6 @@ export function StoryEditorPage() {
     await createSnapshot(id, title, body)
     setSnapshotSaved(true)
     setTimeout(() => setSnapshotSaved(false), 1600)
-  }
-
-  function handleSelectionChange() {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const found = getWordAtPosition(body, textarea.selectionStart)
-    setActiveWord(found?.word ?? null)
-  }
-
-  function insertAtCursor(text: string) {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const nextBody = body.slice(0, start) + text + body.slice(end)
-    setBody(nextBody)
-    requestAnimationFrame(() => {
-      textarea.focus()
-      const pos = start + text.length
-      textarea.setSelectionRange(pos, pos)
-    })
   }
 
   const storyCommands = useMemo<Command[]>(() => {
@@ -215,27 +159,14 @@ export function StoryEditorPage() {
                 className="w-full bg-transparent font-display text-3xl text-ink outline-none placeholder:text-ink/30"
               />
 
-              <textarea
-                ref={textareaRef}
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                onSelect={handleSelectionChange}
-                onClick={handleSelectionChange}
-                onKeyUp={handleSelectionChange}
-                placeholder="Once upon a time…"
-                aria-label="Story text"
-                spellCheck
-                className="mt-6 w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-ink/30"
-                style={{
-                  fontSize: settings.fontSize,
-                  lineHeight: `${settings.lineHeight}px`,
-                  fontFamily,
-                  color: 'var(--color-ink)',
-                  caretColor: 'var(--color-ink)',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  minHeight: '60vh',
-                }}
+              <PlainStoryEditor
+                ref={surfaceRef}
+                body={body}
+                onBodyChange={setBody}
+                onActiveWordChange={setActiveWord}
+                fontFamily={fontFamily}
+                fontSize={settings.fontSize}
+                lineHeight={settings.lineHeight}
               />
             </div>
           </main>
@@ -243,7 +174,7 @@ export function StoryEditorPage() {
           <StoryWorkbenchSidebar
             activeWord={activeWord}
             body={body}
-            onInsert={insertAtCursor}
+            onInsert={(word) => surfaceRef.current?.insertText(word)}
             hidden={focusMode || !panelOpen}
           />
         </div>

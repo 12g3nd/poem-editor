@@ -50,6 +50,10 @@ export function StoryEditorPage() {
   const [panelOpen, setPanelOpen] = useState(true)
   const [snapshotSaved, setSnapshotSaved] = useState(false)
   const [activeWord, setActiveWord] = useState<string | null>(null)
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null)
+  // Read side is consumed by Task 13's CommentsTab (not yet wired into the
+  // sidebar); referenced here so it isn't flagged as unused until then.
+  void activeCommentId
 
   useEffect(() => {
     if (story && hydratedFor.current !== story.id) {
@@ -94,7 +98,19 @@ export function StoryEditorPage() {
   }
 
   function handleAddComment() {
-    /* implemented in Task 12 */
+    const editor = richEditor
+    if (!editor) return
+    const { from, to } = editor.state.selection
+    if (from === to) return // no selection: nothing to anchor to
+    const comment: StoryComment = {
+      id: crypto.randomUUID(),
+      text: '',
+      resolved: false,
+      createdAt: Date.now(),
+    }
+    editor.chain().focus().setMark('comment', { commentId: comment.id }).run()
+    setComments((prev) => [...prev, comment])
+    setActiveCommentId(comment.id)
   }
 
   const storyCommands = useMemo<Command[]>(() => {

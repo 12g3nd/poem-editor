@@ -1,17 +1,31 @@
 import { useEffect, useState } from 'react'
+import type { JSONContent } from '@tiptap/core'
+import type { StoryComment } from '@/types/story'
 import { ThesaurusTab } from '@/features/editor/workbench/ThesaurusTab'
 import { SparkTab } from '@/features/editor/workbench/SparkTab'
 import { AskAiTab } from '@/features/editor/workbench/AskAiTab'
 import { RecentLookupsTab } from '@/features/editor/workbench/RecentLookupsTab'
+import { CommentsTab } from '@/features/editor/workbench/CommentsTab'
 
 const TABS = [
   { id: 'thesaurus', label: 'Thesaurus' },
   { id: 'recent', label: 'Recent' },
   { id: 'spark', label: 'Spark' },
   { id: 'ai', label: 'Ask AI' },
+  { id: 'comments', label: 'Comments' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
+
+interface CommentsTabProps {
+  comments: StoryComment[]
+  doc: JSONContent
+  activeCommentId: string | null
+  onEdit: (id: string, text: string) => void
+  onResolveToggle: (id: string) => void
+  onDelete: (id: string) => void
+  onSelect: (id: string) => void
+}
 
 interface StoryWorkbenchSidebarProps {
   activeWord: string | null
@@ -20,12 +34,15 @@ interface StoryWorkbenchSidebarProps {
   /** Collapsed/focus mode keeps the sidebar mounted but visually hidden, so
    * the Ask AI conversation survives being toggled off and back on. */
   hidden?: boolean
+  /** Only provided for rich stories — plain stories have no comment threads.
+   * Optional so nothing breaks where the sidebar is used without it. */
+  commentsProps?: CommentsTabProps
 }
 
 /** The poem workbench's Rhymes/Syllables/Sound/Meter/Form tabs don't apply
  * to prose — this is the same word-lookup + writing-aid tooling (Thesaurus,
  * Spark, Ask AI), reused as-is, without the poetry-analysis tabs. */
-export function StoryWorkbenchSidebar({ activeWord, body, onInsert, hidden }: StoryWorkbenchSidebarProps) {
+export function StoryWorkbenchSidebar({ activeWord, body, onInsert, hidden, commentsProps }: StoryWorkbenchSidebarProps) {
   const [tab, setTab] = useState<TabId>('thesaurus')
   const [recent, setRecent] = useState<string[]>([])
 
@@ -62,6 +79,7 @@ export function StoryWorkbenchSidebar({ activeWord, body, onInsert, hidden }: St
         <div className={tab === 'ai' ? 'h-full' : 'hidden'}>
           <AskAiTab body={body} />
         </div>
+        {tab === 'comments' && commentsProps && <CommentsTab {...commentsProps} />}
       </div>
     </aside>
   )

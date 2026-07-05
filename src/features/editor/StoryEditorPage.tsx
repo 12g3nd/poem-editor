@@ -51,9 +51,6 @@ export function StoryEditorPage() {
   const [snapshotSaved, setSnapshotSaved] = useState(false)
   const [activeWord, setActiveWord] = useState<string | null>(null)
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null)
-  // Read side is consumed by Task 13's CommentsTab (not yet wired into the
-  // sidebar); referenced here so it isn't flagged as unused until then.
-  void activeCommentId
 
   useEffect(() => {
     if (story && hydratedFor.current !== story.id) {
@@ -111,6 +108,36 @@ export function StoryEditorPage() {
     editor.chain().focus().setMark('comment', { commentId: comment.id }).run()
     setComments((prev) => [...prev, comment])
     setActiveCommentId(comment.id)
+  }
+
+  /** Strips every `comment` mark carrying `commentId` from the live doc —
+   * used when a thread is deleted, so the highlighted span disappears along
+   * with the thread rather than lingering as a dangling anchor. Operates on
+   * the live `richEditor` state (not a ref) since that's what's guaranteed
+   * to reflect the mounted editor instance; no-ops before it exists. */
+  function removeCommentMark(commentId: string) {
+    const editor = richEditor
+    if (!editor) return
+    const { state } = editor
+    const tr = state.tr
+    state.doc.descendants((node, pos) => {
+      if (!node.isText) return
+      node.marks.forEach((mark) => {
+        if (mark.type.name === 'comment' && mark.attrs.commentId === commentId) {
+          tr.removeMark(pos, pos + node.nodeSize, mark.type)
+        }
+      })
+    })
+    if (tr.docChanged) editor.view.dispatch(tr)
+  }
+
+  /** Scrolls the anchored span for a thread into view and briefly flashes
+   * it, so clicking "Jump to text" in the Comments tab is easy to follow. */
+  function scrollToComment(commentId: string) {
+    const el = document.querySelector<HTMLElement>(`.story-comment[data-comment-id="${commentId}"]`)
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el?.classList.add('story-comment-active')
+    setTimeout(() => el?.classList.remove('story-comment-active'), 1200)
   }
 
   const storyCommands = useMemo<Command[]>(() => {
@@ -259,6 +286,27 @@ export function StoryEditorPage() {
             body={displayBody}
             onInsert={(word) => (format === 'rich' ? richRef.current : surfaceRef.current)?.insertText(word)}
             hidden={focusMode || !panelOpen}
+            commentsProps={
+              format === 'rich'
+                ? {
+                    comments,
+                    doc: content,
+                    activeCommentId,
+                    onEdit: (cid, text) =>
+                      setComments((prev) => prev.map((c) => (c.id === cid ? { ...c, text } : c))),
+                    onResolveToggle: (cid) =>
+                      setComments((prev) => prev.map((c) => (c.id === cid ? { ...c, resolved: !c.resolved } : c))),
+                    onDelete: (cid) => {
+                      removeCommentMark(cid) // strip the mark from the doc first
+                      setComments((prev) => prev.filter((c) => c.id !== cid))
+                    },
+                    onSelect: (cid) => {
+                      setActiveCommentId(cid)
+                      scrollToComment(cid)
+                    },
+                  }
+                : undefined
+            }
           />
         </div>
       </div>

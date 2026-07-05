@@ -12,7 +12,7 @@ export interface RichStoryHandle extends StorySurfaceHandle {
 
 interface RichStoryEditorProps {
   content: JSONContent
-  onChange: (content: JSONContent, plainText: string) => void
+  onChange: (content: JSONContent) => void
   onActiveWordChange: (word: string | null) => void
   /** Notified with the live editor instance once TipTap finishes creating it
    * (and with `null` just before it's destroyed), so a parent can drive an
@@ -60,10 +60,7 @@ export const RichStoryEditor = forwardRef<RichStoryHandle, RichStoryEditorProps>
       extensions: storyExtensions,
       content,
       immediatelyRender: false,
-      onUpdate: ({ editor }) => {
-        const json = editor.getJSON()
-        onChange(json, docToPlainText(json))
-      },
+      onUpdate: ({ editor }) => onChange(editor.getJSON()),
       onSelectionUpdate: ({ editor }) => onActiveWordChange(activeWordFromEditor(editor)),
     })
 

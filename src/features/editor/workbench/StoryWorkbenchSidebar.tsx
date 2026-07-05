@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react'
-import type { JSONContent } from '@tiptap/core'
-import type { StoryComment } from '@/types/story'
+import { useEffect, useMemo, useState } from 'react'
 import { ThesaurusTab } from '@/features/editor/workbench/ThesaurusTab'
 import { SparkTab } from '@/features/editor/workbench/SparkTab'
 import { AskAiTab } from '@/features/editor/workbench/AskAiTab'
 import { RecentLookupsTab } from '@/features/editor/workbench/RecentLookupsTab'
-import { CommentsTab } from '@/features/editor/workbench/CommentsTab'
+import { CommentsTab, type CommentsTabProps } from '@/features/editor/workbench/CommentsTab'
 
 const TABS = [
   { id: 'thesaurus', label: 'Thesaurus' },
@@ -16,16 +14,6 @@ const TABS = [
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
-
-interface CommentsTabProps {
-  comments: StoryComment[]
-  doc: JSONContent
-  activeCommentId: string | null
-  onEdit: (id: string, text: string) => void
-  onResolveToggle: (id: string) => void
-  onDelete: (id: string) => void
-  onSelect: (id: string) => void
-}
 
 interface StoryWorkbenchSidebarProps {
   activeWord: string | null
@@ -53,10 +41,14 @@ export function StoryWorkbenchSidebar({ activeWord, body, onInsert, hidden, comm
 
   const word = activeWord ?? ''
 
+  // Plain stories have no comment threads (commentsProps is undefined) — hide
+  // the tab entirely rather than showing a button that opens to nothing.
+  const visibleTabs = useMemo(() => TABS.filter((t) => t.id !== 'comments' || commentsProps), [commentsProps])
+
   return (
     <aside className={`${hidden ? 'hidden' : 'flex'} w-80 shrink-0 flex-col border-l border-canvas-line bg-paper`}>
       <nav className="flex flex-wrap border-b border-canvas-line">
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.id}
             type="button"

@@ -2,7 +2,7 @@ import type { JSONContent } from '@tiptap/core'
 import type { StoryComment } from '@/types/story'
 import { partitionComments } from '@/engines/richText/comments'
 
-interface CommentsTabProps {
+export interface CommentsTabProps {
   comments: StoryComment[]
   doc: JSONContent
   activeCommentId: string | null

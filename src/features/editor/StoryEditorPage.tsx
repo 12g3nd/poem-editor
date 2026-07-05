@@ -56,7 +56,7 @@ export function StoryEditorPage() {
     if (story && hydratedFor.current !== story.id) {
       setTitle(story.title)
       setBody(story.body)
-      setContent((story.content as JSONContent) ?? EMPTY_DOC)
+      setContent(story.content ?? EMPTY_DOC)
       setComments(story.comments ?? [])
       hydratedFor.current = story.id
     }
@@ -185,7 +185,18 @@ export function StoryEditorPage() {
   // it doesn't reactively re-apply later prop changes, and RichStoryEditor
   // is deliberately keyed on `id` to remount rather than live-patch. So wait
   // one more tick for hydration before mounting either surface.
-  if (hydratedFor.current !== story.id) {
+  //
+  // Gated on the route `id`, not `story.id`: the `/story/:id` route has no
+  // `key`, so navigating from one story to another (e.g. via the "New story"
+  // command run from inside a story editor) reuses this component instance.
+  // On that transition `story` still momentarily holds the *previous*
+  // story's record (same id as `hydratedFor.current`) while `id` has already
+  // changed — checking `story.id` would pass immediately and mount the
+  // surface with the outgoing story's stale `content` state, and the next
+  // keystroke would save it under the new id. Checking against `id` instead
+  // keeps this guard true (Loading) until the hydration effect has actually
+  // run for the newly-routed story.
+  if (hydratedFor.current !== id) {
     return (
       <div className="flex min-h-full items-center justify-center bg-canvas">
         <p className="text-sm text-ink/50">Loading…</p>
@@ -264,7 +275,7 @@ export function StoryEditorPage() {
                   key={id}
                   ref={richRef}
                   content={content}
-                  onChange={(next) => setContent(next)}
+                  onChange={setContent}
                   onActiveWordChange={setActiveWord}
                   onEditor={setRichEditor}
                   fontFamily={fontFamily}

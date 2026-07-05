@@ -10,7 +10,7 @@ import { estimateReadingMinutes, countParagraphs } from '@/engines/storyStats'
 import { StoryWorkbenchSidebar } from '@/features/editor/workbench/StoryWorkbenchSidebar'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { ExportMenu } from '@/features/editor/ExportMenu'
-import { PrintablePoem } from '@/features/editor/PrintablePoem'
+import { PrintableStory } from '@/features/editor/story/PrintableStory'
 import { useRegisterCommands, type Command } from '@/engines/CommandPaletteContext'
 import { PlainStoryEditor } from '@/features/editor/story/PlainStoryEditor'
 import type { StorySurfaceHandle } from '@/features/editor/story/storySurface'
@@ -237,7 +237,11 @@ export function StoryEditorPage() {
             <Link to={`/story/${id}/history`} className="text-ink/50 hover:text-indigo">
               History
             </Link>
-            <ExportMenu title={title} body={displayBody} />
+            <ExportMenu
+              title={title}
+              body={displayBody}
+              richContent={format === 'rich' ? content : undefined}
+            />
             <SettingsPanel />
           </div>
         </header>
@@ -310,7 +314,12 @@ export function StoryEditorPage() {
           />
         </div>
       </div>
-      <PrintablePoem title={title} body={displayBody} />
+      <PrintableStory
+        title={title}
+        format={format}
+        body={displayBody}
+        content={format === 'rich' ? content : undefined}
+      />
     </>
   )
 }

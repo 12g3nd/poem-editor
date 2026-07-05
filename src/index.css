@@ -70,6 +70,44 @@ body,
   height: 100%;
 }
 
+/* Rich story editor (TipTap). Tailwind's reset strips list/heading styling,
+   so the ProseMirror surface needs its block rhythm restored explicitly. */
+.ProseMirror { outline: none; }
+.ProseMirror > * + * { margin-top: 0.75em; }
+.ProseMirror h1 { font-size: 1.6em; font-weight: 600; }
+.ProseMirror h2 { font-size: 1.35em; font-weight: 600; }
+.ProseMirror h3 { font-size: 1.15em; font-weight: 600; }
+.ProseMirror ul { list-style: disc; padding-left: 1.5em; }
+.ProseMirror ol { list-style: decimal; padding-left: 1.5em; }
+.ProseMirror blockquote {
+  border-left: 3px solid var(--color-canvas-line);
+  padding-left: 1em;
+  color: var(--color-ink);
+  opacity: 0.8;
+}
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--color-canvas-line);
+  margin: 1.5em 0;
+}
+.ProseMirror a { color: var(--color-indigo); text-decoration: underline; }
+.ProseMirror .story-comment {
+  background: color-mix(in srgb, var(--color-indigo) 18%, transparent);
+  border-bottom: 2px solid var(--color-indigo);
+  cursor: pointer;
+}
+.ProseMirror .story-comment-active {
+  background: color-mix(in srgb, var(--color-indigo) 35%, transparent);
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-ink);
+  opacity: 0.3;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 body {
   margin: 0;
   background-color: var(--color-canvas);

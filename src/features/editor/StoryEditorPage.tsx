@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import type { Editor, JSONContent } from '@tiptap/core'
 import { getStory, updateStory } from '@/db/stories'
 import { createSnapshot } from '@/db/snapshots'
 import { useSettings } from '@/engines/SettingsContext'
@@ -13,6 +14,10 @@ import { PrintablePoem } from '@/features/editor/PrintablePoem'
 import { useRegisterCommands, type Command } from '@/engines/CommandPaletteContext'
 import { PlainStoryEditor } from '@/features/editor/story/PlainStoryEditor'
 import type { StorySurfaceHandle } from '@/features/editor/story/storySurface'
+import { RichStoryEditor, type RichStoryHandle } from '@/features/editor/story/RichStoryEditor'
+import { RichToolbar } from '@/features/editor/story/RichToolbar'
+import { storyFormat, type StoryComment } from '@/types/story'
+import { docToPlainText, EMPTY_DOC } from '@/engines/richText/projection'
 
 /** The "short story mode" editor — a plain wrapping prose surface (no
  * per-line gutters/overlays, since rhyme/scansion/meter don't apply to
@@ -27,9 +32,19 @@ export function StoryEditorPage() {
 
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [content, setContent] = useState<JSONContent>(EMPTY_DOC)
+  const [comments, setComments] = useState<StoryComment[]>([])
   const hydratedFor = useRef<string | null>(null)
 
   const surfaceRef = useRef<StorySurfaceHandle>(null)
+  const richRef = useRef<RichStoryHandle>(null)
+  // The live TipTap editor instance, reported by RichStoryEditor once it
+  // exists (see its onEditor prop). Held in state rather than read off
+  // richRef.current during render because useEditor({ immediatelyRender:
+  // false }) creates the editor asynchronously — a ref read on first render
+  // would be stale, and nothing would trigger a re-render once it resolved.
+  const [richEditor, setRichEditor] = useState<Editor | null>(null)
+  const format = story ? storyFormat(story) : 'plain'
 
   const [focusMode, setFocusMode] = useState(false)
   const [panelOpen, setPanelOpen] = useState(true)
@@ -40,6 +55,8 @@ export function StoryEditorPage() {
     if (story && hydratedFor.current !== story.id) {
       setTitle(story.title)
       setBody(story.body)
+      setContent((story.content as JSONContent) ?? EMPTY_DOC)
+      setComments(story.comments ?? [])
       hydratedFor.current = story.id
     }
   }, [story])
@@ -47,20 +64,37 @@ export function StoryEditorPage() {
   useEffect(() => {
     if (!id || hydratedFor.current !== id) return
     const handle = setTimeout(() => {
-      void updateStory(id, { title, body })
+      if (format === 'rich') {
+        void updateStory(id, { title, body: docToPlainText(content), content, comments })
+      } else {
+        void updateStory(id, { title, body })
+      }
     }, 400)
     return () => clearTimeout(handle)
-  }, [id, title, body])
+  }, [id, title, body, content, comments, format])
 
-  const wordCount = useMemo(() => countWords(body), [body])
-  const paragraphCount = useMemo(() => countParagraphs(body), [body])
+  // The plain-text projection used everywhere the header/export/print need
+  // prose stats: for rich stories that's the live doc's projection (`body`
+  // state only mirrors the last debounced save, not every keystroke), for
+  // plain stories it's just `body`.
+  const displayBody = useMemo(
+    () => (format === 'rich' ? docToPlainText(content) : body),
+    [format, content, body],
+  )
+
+  const wordCount = useMemo(() => countWords(displayBody), [displayBody])
+  const paragraphCount = useMemo(() => countParagraphs(displayBody), [displayBody])
   const readingMinutes = useMemo(() => estimateReadingMinutes(wordCount), [wordCount])
 
   async function handleSnapshot() {
     if (!id) return
-    await createSnapshot(id, title, body)
+    await createSnapshot(id, title, displayBody, undefined, format === 'rich' ? content : undefined)
     setSnapshotSaved(true)
     setTimeout(() => setSnapshotSaved(false), 1600)
+  }
+
+  function handleAddComment() {
+    /* implemented in Task 12 */
   }
 
   const storyCommands = useMemo<Command[]>(() => {
@@ -95,6 +129,23 @@ export function StoryEditorPage() {
         <button type="button" onClick={() => navigate('/')} className="text-indigo hover:underline">
           Back to library
         </button>
+      </div>
+    )
+  }
+
+  // `story` just resolved from undefined to a real record, but the
+  // hydration effect above (which seeds title/body/content/comments from it)
+  // hasn't committed yet — it runs after this render. Rendering
+  // RichStoryEditor with last render's stale `content` state (e.g. leftover
+  // EMPTY_DOC, or another story's content) would mount TipTap with the
+  // wrong initial doc: useEditor only consumes `content` at creation time,
+  // it doesn't reactively re-apply later prop changes, and RichStoryEditor
+  // is deliberately keyed on `id` to remount rather than live-patch. So wait
+  // one more tick for hydration before mounting either surface.
+  if (hydratedFor.current !== story.id) {
+    return (
+      <div className="flex min-h-full items-center justify-center bg-canvas">
+        <p className="text-sm text-ink/50">Loading…</p>
       </div>
     )
   }
@@ -143,10 +194,12 @@ export function StoryEditorPage() {
             <Link to={`/story/${id}/history`} className="text-ink/50 hover:text-indigo">
               History
             </Link>
-            <ExportMenu title={title} body={body} />
+            <ExportMenu title={title} body={displayBody} />
             <SettingsPanel />
           </div>
         </header>
+
+        {format === 'rich' && <RichToolbar editor={richEditor} onAddComment={handleAddComment} />}
 
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <main className="min-h-0 flex-1 overflow-y-auto px-8 py-10">
@@ -159,27 +212,41 @@ export function StoryEditorPage() {
                 className="w-full bg-transparent font-display text-3xl text-ink outline-none placeholder:text-ink/30"
               />
 
-              <PlainStoryEditor
-                ref={surfaceRef}
-                body={body}
-                onBodyChange={setBody}
-                onActiveWordChange={setActiveWord}
-                fontFamily={fontFamily}
-                fontSize={settings.fontSize}
-                lineHeight={settings.lineHeight}
-              />
+              {format === 'rich' ? (
+                <RichStoryEditor
+                  key={id}
+                  ref={richRef}
+                  content={content}
+                  onChange={(next) => setContent(next)}
+                  onActiveWordChange={setActiveWord}
+                  onEditor={setRichEditor}
+                  fontFamily={fontFamily}
+                  fontSize={settings.fontSize}
+                  lineHeight={settings.lineHeight}
+                />
+              ) : (
+                <PlainStoryEditor
+                  ref={surfaceRef}
+                  body={body}
+                  onBodyChange={setBody}
+                  onActiveWordChange={setActiveWord}
+                  fontFamily={fontFamily}
+                  fontSize={settings.fontSize}
+                  lineHeight={settings.lineHeight}
+                />
+              )}
             </div>
           </main>
 
           <StoryWorkbenchSidebar
             activeWord={activeWord}
-            body={body}
-            onInsert={(word) => surfaceRef.current?.insertText(word)}
+            body={displayBody}
+            onInsert={(word) => (format === 'rich' ? richRef.current : surfaceRef.current)?.insertText(word)}
             hidden={focusMode || !panelOpen}
           />
         </div>
       </div>
-      <PrintablePoem title={title} body={body} />
+      <PrintablePoem title={title} body={displayBody} />
     </>
   )
 }

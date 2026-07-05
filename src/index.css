@@ -118,9 +118,20 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* Printing/PDF export renders only the hidden PrintablePoem block (see
-   print:hidden / print:block utility classes in EditorPage and
-   PrintablePoem) — plain black-on-white regardless of the active theme. */
+/* Printing/PDF export renders only the hidden PrintablePoem/PrintableStory
+   block (see print:hidden / print:block utility classes in EditorPage,
+   StoryEditorPage, PrintablePoem, and PrintableStory) — plain black-on-white
+   regardless of the active theme. PrintableStory reuses the editor's
+   `.ProseMirror` class to render rich HTML, but the editor's own
+   `.ProseMirror` color rules (blockquote, a) use theme variables that are
+   near-white in dark mode. Re-assert black across the whole print-surface
+   subtree so it wins regardless of theme, without touching the on-screen
+   editor's `.ProseMirror` appearance. */
+.print\:block .ProseMirror,
+.print\:block .ProseMirror * {
+  color: #1a1a1a !important;
+}
+
 @media print {
   @page {
     margin: 1in;

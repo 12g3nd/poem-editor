@@ -13,6 +13,16 @@ interface ExportMenuProps {
   richContent?: JSONContent
 }
 
+/** Escapes HTML special characters so untrusted text (e.g. a user-supplied
+ * title) can be safely interpolated into raw HTML markup. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function downloadTextFile(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
@@ -46,7 +56,8 @@ export function ExportMenu({ title, body, richContent }: ExportMenuProps) {
 
   function handleDownloadHtml() {
     if (!richContent) return
-    const page = `<!doctype html><html><head><meta charset="utf-8"><title>${title || 'Untitled'}</title></head><body><h1>${title || 'Untitled'}</h1>${docToHtml(richContent)}</body></html>`
+    const safeTitle = escapeHtml(title || 'Untitled')
+    const page = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title></head><body><h1>${safeTitle}</h1>${docToHtml(richContent)}</body></html>`
     downloadTextFile(page, `${slugifyFilename(title)}.html`, 'text/html')
     setOpen(false)
   }
